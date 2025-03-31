@@ -2,6 +2,7 @@ import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import Features from '@/components/Features';
 import HowItWorks from '@/components/HowItWorks';
+import Newsletter from '@/components/Newsletter';
 import PopularDestinations from '@/components/PopularDestinations';
 import Statistics from '@/components/Statistics';
 import Reviews from '@/components/Reviews';
@@ -15,6 +16,7 @@ export default function Home() {
       <Hero />
       <Features />
       <HowItWorks />
+      <Newsletter />
       <PopularDestinations />
       <Statistics />
       <Reviews />

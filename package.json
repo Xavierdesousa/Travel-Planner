@@ -13,6 +13,7 @@
     "@headlessui/react": "^2.2.0",
     "@prisma/client": "^6.5.0",
     "@react-google-maps/api": "^2.20.6",
+    "@sendgrid/mail": "^8.1.4",
     "@types/react-datepicker": "^6.2.0",
     "axios": "^1.8.4",
     "daisyui": "^5.0.9",

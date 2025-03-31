@@ -7,6 +7,8 @@ import { Listbox } from '@headlessui/react';
 import { FaSearch, FaChevronDown, FaCheck, FaTimes } from 'react-icons/fa';
 import { Trip } from '@/types/trip';
 import { useRouter, useSearchParams } from 'next/navigation';
+import DatePicker from 'react-datepicker';
+import "react-datepicker/dist/react-datepicker.css";
 
 export default function TripsPage() {
   const router = useRouter();
@@ -15,6 +17,8 @@ export default function TripsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<Trip['status'] | 'all'>('all');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
 
   // Get unique tags from all trips
   const allTags = Array.from(
@@ -26,10 +30,14 @@ export default function TripsPage() {
     const query = searchParams.get('search') || '';
     const status = searchParams.get('status') || 'all';
     const tags = searchParams.get('tags')?.split(',').filter(Boolean) || [];
+    const startParam = searchParams.get('startDate');
+    const endParam = searchParams.get('endDate');
     
     setSearchQuery(query);
     setSelectedStatus(status as Trip['status'] | 'all');
     setSelectedTags(tags);
+    setStartDate(startParam ? new Date(startParam) : null);
+    setEndDate(endParam ? new Date(endParam) : null);
   }, [searchParams]);
 
   // Update URL when filters change
@@ -48,16 +56,32 @@ export default function TripsPage() {
       params.set('tags', selectedTags.join(','));
     }
 
+    if (startDate) {
+      params.set('startDate', startDate.toISOString().split('T')[0]);
+    }
+
+    if (endDate) {
+      params.set('endDate', endDate.toISOString().split('T')[0]);
+    }
+
     const newUrl = params.toString() ? `?${params.toString()}` : '';
     router.push(`/trips${newUrl}`, { scroll: false });
-  }, [searchQuery, selectedStatus, selectedTags, router]);
+  }, [searchQuery, selectedStatus, selectedTags, startDate, endDate, router]);
 
-  // Filter trips based on search, status, and tags
+  // Filter trips based on search, status, tags, and dates
   const filteredTrips = sampleTrips.filter((trip) => {
     const matchesSearch = trip.title.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = selectedStatus === 'all' || trip.status === selectedStatus;
     const matchesTags = selectedTags.length === 0 || selectedTags.every(tag => trip.tags.includes(tag));
-    return matchesSearch && matchesStatus && matchesTags;
+    
+    // Date filtering
+    const tripStartDate = new Date(trip.startDate);
+    const tripEndDate = new Date(trip.endDate);
+    
+    const matchesDates = (!startDate || tripEndDate >= startDate) &&
+                        (!endDate || tripStartDate <= endDate);
+    
+    return matchesSearch && matchesStatus && matchesTags && matchesDates;
   });
 
   // Group trips by status
@@ -87,6 +111,44 @@ export default function TripsPage() {
           </div>
 
           <div className="flex gap-4">
+            {/* Date Range Filters */}
+            <div className="flex items-center gap-4 bg-white p-2 rounded-lg border border-gray-300">
+              <div className="flex flex-col">
+                <label htmlFor="startDate" className="text-sm font-medium text-gray-700 mb-1">
+                  From
+                </label>
+                <DatePicker
+                  id="startDate"
+                  selected={startDate}
+                  onChange={(date) => setStartDate(date)}
+                  selectsStart
+                  startDate={startDate || undefined}
+                  endDate={endDate || undefined}
+                  maxDate={endDate || undefined}
+                  placeholderText="Select start date"
+                  className="px-3 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 text-sm w-full"
+                  dateFormat="MMM d, yyyy"
+                />
+              </div>
+              <div className="flex flex-col">
+                <label htmlFor="endDate" className="text-sm font-medium text-gray-700 mb-1">
+                  To
+                </label>
+                <DatePicker
+                  id="endDate"
+                  selected={endDate}
+                  onChange={(date) => setEndDate(date)}
+                  selectsEnd
+                  startDate={startDate || undefined}
+                  endDate={endDate || undefined}
+                  minDate={startDate || undefined}
+                  placeholderText="Select end date"
+                  className="px-3 py-1.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 text-sm w-full"
+                  dateFormat="MMM d, yyyy"
+                />
+              </div>
+            </div>
+
             {/* Status Filter Buttons */}
             <div className="flex gap-2">
               <button
@@ -173,12 +235,14 @@ export default function TripsPage() {
             </div>
 
             {/* Clear Filters */}
-            {(searchQuery || selectedStatus !== 'all' || selectedTags.length > 0) && (
+            {(searchQuery || selectedStatus !== 'all' || selectedTags.length > 0 || startDate || endDate) && (
               <button
                 onClick={() => {
                   setSearchQuery('');
                   setSelectedStatus('all');
                   setSelectedTags([]);
+                  setStartDate(null);
+                  setEndDate(null);
                 }}
                 className="flex items-center px-3 py-2 text-sm text-gray-600 hover:text-gray-900"
               >
@@ -190,13 +254,15 @@ export default function TripsPage() {
         </div>
 
         {/* Active filters summary */}
-        {(searchQuery || selectedStatus !== 'all' || selectedTags.length > 0) && (
+        {(searchQuery || selectedStatus !== 'all' || selectedTags.length > 0 || startDate || endDate) && (
           <div className="mb-6">
             <p className="text-gray-600">
               {`Showing ${filteredTrips.length} trip${filteredTrips.length === 1 ? '' : 's'}`}
               {selectedStatus !== 'all' && ` • Status: ${selectedStatus}`}
               {selectedTags.length > 0 && ` • Tags: ${selectedTags.join(', ')}`}
               {searchQuery && ` • Search: "${searchQuery}"`}
+              {startDate && ` • From: ${startDate.toLocaleDateString()}`}
+              {endDate && ` • To: ${endDate.toLocaleDateString()}`}
             </p>
           </div>
         )}
